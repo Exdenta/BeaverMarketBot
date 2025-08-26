@@ -44,7 +44,7 @@ Ready to monitor market conditions and catch the next crash opportunity!`;
                 parse_mode: 'HTML',
                 ...Markup.inlineKeyboard([
                     [Markup.button.callback('📊 Current Status', 'status')],
-                    [Markup.button.callback('📈 View Metrics', 'metrics'), Markup.button.callback('🤖 AI Analysis', 'analyze')],
+                    [Markup.button.callback('📈 View Metrics', 'view_metrics'), Markup.button.callback('🤖 AI Analysis', 'analyze')],
                     [Markup.button.callback('📊 Quick Charts', 'quick_charts'), Markup.button.callback('⚙️ Settings', 'settings')]
                 ])
             });

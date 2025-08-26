@@ -6,6 +6,31 @@ export function setupCallbacks(bot, services) {
     const { dbService, marketDataService, chartService } = services;
     const aiAnalysis = new AIAnalysisService();
 
+    // Status callback (from main menu)
+    bot.action('status', async (ctx) => {
+        try {
+            await ctx.answerCbQuery('📊 Loading status...');
+            await ctx.editMessageText('📊 Fetching current market status...');
+            
+            const metrics = await marketDataService.getAllMetrics();
+            const summary = await marketDataService.generateMarketSummary('current');
+            
+            await ctx.editMessageText(summary, {
+                parse_mode: 'HTML',
+                disable_web_page_preview: true,
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: '🔄 Refresh', callback_data: 'refresh_status' }],
+                        [{ text: '📈 View Charts', callback_data: 'status_charts' }, { text: '🤖 AI Analysis', callback_data: 'ai_analyze' }]
+                    ]
+                }
+            });
+        } catch (error) {
+            logger.error('Error in status callback:', error);
+            await ctx.answerCbQuery('❌ Error loading status');
+        }
+    });
+
     // Status refresh callback
     bot.action('refresh_status', async (ctx) => {
         try {
@@ -31,8 +56,8 @@ export function setupCallbacks(bot, services) {
         }
     });
 
-    // Metrics callback
-    bot.action('metrics', async (ctx) => {
+    // View Metrics callback (handle both 'metrics' and 'view_metrics')
+    bot.action(['metrics', 'view_metrics'], async (ctx) => {
         try {
             await ctx.answerCbQuery('📊 Loading metrics...');
             await ctx.editMessageText('📊 Loading all market metrics...');
@@ -79,7 +104,7 @@ ${analysis.summary}
                 parse_mode: 'HTML',
                 reply_markup: {
                     inline_keyboard: [
-                        [{ text: '📊 View Metrics', callback_data: 'view_metrics_analysis' }],
+                        [{ text: '📊 View Metrics', callback_data: 'view_metrics' }],
                         [{ text: '📈 Charts', callback_data: 'analysis_charts' }],
                         [{ text: '🔄 Refresh Analysis', callback_data: 'refresh_analysis' }]
                     ]
@@ -117,18 +142,34 @@ Select a metric to generate its chart:
 • Dollar Index - Currency strength
 • Credit Spreads - Credit risk`;
 
-            await ctx.editMessageText(chartMenu, {
-                parse_mode: 'HTML',
-                reply_markup: {
-                    inline_keyboard: [
-                        [{ text: '📊 VIX Chart', callback_data: 'chart_vix' }, { text: '📈 RSI Chart', callback_data: 'chart_spyRsi' }],
-                        [{ text: '⚖️ Put/Call Chart', callback_data: 'chart_putCallRatio' }, { text: '😰 Fear/Greed Chart', callback_data: 'chart_fearGreedIndex' }],
-                        [{ text: '📉 McClellan Chart', callback_data: 'chart_mcclellanOscillator' }, { text: '🏛️ CAPE Chart', callback_data: 'chart_cape' }],
-                        [{ text: '💸 Yield Spread', callback_data: 'chart_yieldSpread' }, { text: '💵 Dollar Index', callback_data: 'chart_dollarIndex' }],
-                        [{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]
-                    ]
-                }
-            });
+            try {
+                await ctx.editMessageText(chartMenu, {
+                    parse_mode: 'HTML',
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: '📊 VIX Chart', callback_data: 'chart_vix' }, { text: '📈 RSI Chart', callback_data: 'chart_spyRsi' }],
+                            [{ text: '⚖️ Put/Call Chart', callback_data: 'chart_putCallRatio' }, { text: '😰 Fear/Greed Chart', callback_data: 'chart_fearGreedIndex' }],
+                            [{ text: '📉 McClellan Chart', callback_data: 'chart_mcclellanOscillator' }, { text: '🏛️ CAPE Chart', callback_data: 'chart_cape' }],
+                            [{ text: '💸 Yield Spread', callback_data: 'chart_yieldSpread' }, { text: '💵 Dollar Index', callback_data: 'chart_dollarIndex' }],
+                            [{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]
+                        ]
+                    }
+                });
+            } catch (editError) {
+                // If edit fails, send new message
+                await ctx.reply(chartMenu, {
+                    parse_mode: 'HTML',
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: '📊 VIX Chart', callback_data: 'chart_vix' }, { text: '📈 RSI Chart', callback_data: 'chart_spyRsi' }],
+                            [{ text: '⚖️ Put/Call Chart', callback_data: 'chart_putCallRatio' }, { text: '😰 Fear/Greed Chart', callback_data: 'chart_fearGreedIndex' }],
+                            [{ text: '📉 McClellan Chart', callback_data: 'chart_mcclellanOscillator' }, { text: '🏛️ CAPE Chart', callback_data: 'chart_cape' }],
+                            [{ text: '💸 Yield Spread', callback_data: 'chart_yieldSpread' }, { text: '💵 Dollar Index', callback_data: 'chart_dollarIndex' }],
+                            [{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]
+                        ]
+                    }
+                });
+            }
         } catch (error) {
             logger.error('Error in quick_charts callback:', error);
             await ctx.answerCbQuery('❌ Error loading chart options');
@@ -220,16 +261,29 @@ Trend: ${calculateTrend(historicalData)}
 <i>📅 Analysis Time: ${new Date().toLocaleString()}</i>`;
                 }
                 
-                await ctx.editMessageText(analysisText, {
-                    parse_mode: 'HTML',
-                    reply_markup: {
-                        inline_keyboard: [
-                            [{ text: '📈 View Chart', callback_data: `chart_${metric}` }],
-                            [{ text: '📊 All Metrics', callback_data: 'metrics' }],
-                            [{ text: '🔙 Back', callback_data: 'quick_charts' }]
-                        ]
-                    }
-                });
+                try {
+                    await ctx.editMessageText(analysisText, {
+                        parse_mode: 'HTML',
+                        reply_markup: {
+                            inline_keyboard: [
+                                [{ text: '📈 View Chart', callback_data: `chart_${metric}` }],
+                                [{ text: '📊 All Metrics', callback_data: 'view_metrics' }],
+                                [{ text: '🔙 Back', callback_data: 'quick_charts' }]
+                            ]
+                        }
+                    });
+                } catch (editError) {
+                    await ctx.reply(analysisText, {
+                        parse_mode: 'HTML',
+                        reply_markup: {
+                            inline_keyboard: [
+                                [{ text: '📈 View Chart', callback_data: `chart_${metric}` }],
+                                [{ text: '📊 All Metrics', callback_data: 'view_metrics' }],
+                                [{ text: '🔙 Back', callback_data: 'quick_charts' }]
+                            ]
+                        }
+                    });
+                }
             } catch (error) {
                 logger.error(`Error in analyze_${metric} callback:`, error);
                 await ctx.answerCbQuery('❌ Error analyzing metric');
@@ -389,6 +443,177 @@ Trend: ${calculateTrend(historicalData)}
             await ctx.answerCbQuery('❌ Error loading statistics');
         }
     });
+
+    // Refresh analysis callback
+    bot.action('refresh_analysis', async (ctx) => {
+        try {
+            await ctx.answerCbQuery('🤖 Refreshing analysis...');
+            await ctx.editMessageText('🤖 AI is analyzing current market conditions...\n\nThis may take 30-60 seconds...');
+            
+            const metrics = await marketDataService.getAllMetrics();
+            const analysis = await aiAnalysis.analyzeMarketConditions(metrics);
+            
+            const analysisMessage = `🤖 <b>AI MARKET ANALYSIS</b>
+
+${analysis.summary}
+
+<b>📊 RISK SCORE:</b> ${analysis.riskScore}/10
+<b>📅 ANALYSIS TIME:</b> ${new Date(analysis.timestamp).toLocaleString()}
+
+<i>Analysis considers all 17 market indicators for crash detection and timing guidance.</i>`;
+
+            await ctx.editMessageText(analysisMessage, {
+                parse_mode: 'HTML',
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: '📊 View Metrics', callback_data: 'view_metrics' }],
+                        [{ text: '📈 Charts', callback_data: 'analysis_charts' }],
+                        [{ text: '🔄 Refresh Analysis', callback_data: 'refresh_analysis' }]
+                    ]
+                }
+            });
+        } catch (error) {
+            logger.error('Error refreshing analysis:', error);
+            await ctx.answerCbQuery('❌ Error refreshing analysis');
+        }
+    });
+
+    // Analysis charts callback
+    bot.action('analysis_charts', async (ctx) => {
+        try {
+            await ctx.answerCbQuery('📈 Loading charts...');
+            
+            const chartMenu = `📈 <b>ANALYSIS CHARTS</b>
+
+Select a chart to view based on current analysis:
+
+<b>🔥 Key Indicators:</b>
+• VIX - Market volatility and fear
+• RSI - Overbought/Oversold levels
+• Put/Call - Options sentiment
+• Fear & Greed - Overall market mood
+
+<b>📊 Supporting Metrics:</b>
+• McClellan - Market breadth
+• CAPE - Valuation levels
+• Yield Spread - Recession risk`;
+
+            await ctx.editMessageText(chartMenu, {
+                parse_mode: 'HTML',
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: '📊 VIX Chart', callback_data: 'chart_vix' }, { text: '📈 RSI Chart', callback_data: 'chart_spyRsi' }],
+                        [{ text: '⚖️ Put/Call Chart', callback_data: 'chart_putCallRatio' }, { text: '😰 Fear/Greed Chart', callback_data: 'chart_fearGreedIndex' }],
+                        [{ text: '📉 McClellan Chart', callback_data: 'chart_mcclellanOscillator' }, { text: '🏛️ CAPE Chart', callback_data: 'chart_cape' }],
+                        [{ text: '🔙 Back to Analysis', callback_data: 'analyze' }]
+                    ]
+                }
+            });
+        } catch (error) {
+            logger.error('Error in analysis_charts callback:', error);
+            await ctx.answerCbQuery('❌ Error loading charts');
+        }
+    });
+
+    // Status charts callback
+    bot.action('status_charts', async (ctx) => {
+        try {
+            await ctx.answerCbQuery('📈 Loading charts...');
+            
+            // Redirect to the main charts menu
+            const chartMenu = `📈 <b>MARKET CHARTS</b>
+
+Current market status charts:
+
+<b>🚨 Primary Indicators:</b>
+• VIX - Current volatility level
+• RSI - Market momentum
+• Put/Call - Investor sentiment
+
+<b>📊 All Available Charts:</b>`;
+
+            await ctx.editMessageText(chartMenu, {
+                parse_mode: 'HTML',
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: '📊 VIX Chart', callback_data: 'chart_vix' }, { text: '📈 RSI Chart', callback_data: 'chart_spyRsi' }],
+                        [{ text: '⚖️ Put/Call Chart', callback_data: 'chart_putCallRatio' }, { text: '😰 Fear/Greed Chart', callback_data: 'chart_fearGreedIndex' }],
+                        [{ text: '📊 All Charts Menu', callback_data: 'quick_charts' }],
+                        [{ text: '🔙 Back to Status', callback_data: 'status' }]
+                    ]
+                }
+            });
+        } catch (error) {
+            logger.error('Error in status_charts callback:', error);
+            await ctx.answerCbQuery('❌ Error loading charts');
+        }
+    });
+
+    // Refresh metrics callback
+    bot.action('refresh_metrics', async (ctx) => {
+        try {
+            await ctx.answerCbQuery('🔄 Refreshing metrics...');
+            await ctx.editMessageText('📊 Loading all market metrics...');
+            
+            const metrics = await marketDataService.getAllMetrics();
+            const message = formatMetricsMessage(metrics);
+            
+            await ctx.editMessageText(message, {
+                parse_mode: 'HTML',
+                disable_web_page_preview: true,
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: '📊 Charts', callback_data: 'metric_charts' }],
+                        [{ text: '⚠️ Alerts Only', callback_data: 'alert_metrics' }],
+                        [{ text: '🔄 Refresh', callback_data: 'refresh_metrics' }]
+                    ]
+                }
+            });
+        } catch (error) {
+            logger.error('Error refreshing metrics:', error);
+            await ctx.answerCbQuery('❌ Error refreshing metrics');
+        }
+    });
+
+    // Metric charts callback
+    bot.action('metric_charts', async (ctx) => {
+        try {
+            await ctx.answerCbQuery('📊 Chart options...');
+            
+            // Redirect to quick charts
+            const chartMenu = `📈 <b>METRIC CHARTS</b>
+
+Generate charts for any of the 17 monitored indicators:
+
+<b>🚨 Level 1 - Early Warning:</b>
+• VIX, CAPE, VIX Term Structure
+
+<b>📈 Level 2 - Technical:</b>
+• RSI, Put/Call, McClellan, High-Low
+
+<b>😰 Level 3 - Sentiment:</b>
+• Fear & Greed, AAII Bulls/Bears
+
+<b>🏦 Level 4 - Economic:</b>
+• Yield Spread, Credit Spreads, Dollar Index`;
+
+            await ctx.editMessageText(chartMenu, {
+                parse_mode: 'HTML',
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: '📊 VIX Chart', callback_data: 'chart_vix' }, { text: '📈 RSI Chart', callback_data: 'chart_spyRsi' }],
+                        [{ text: '⚖️ Put/Call Chart', callback_data: 'chart_putCallRatio' }, { text: '😰 Fear/Greed Chart', callback_data: 'chart_fearGreedIndex' }],
+                        [{ text: '📉 McClellan Chart', callback_data: 'chart_mcclellanOscillator' }, { text: '🏛️ CAPE Chart', callback_data: 'chart_cape' }],
+                        [{ text: '💸 Yield Spread', callback_data: 'chart_yieldSpread' }, { text: '💵 Dollar Index', callback_data: 'chart_dollarIndex' }],
+                        [{ text: '🔙 Back to Metrics', callback_data: 'view_metrics' }]
+                    ]
+                }
+            });
+        } catch (error) {
+            logger.error('Error in metric_charts callback:', error);
+            await ctx.answerCbQuery('❌ Error loading chart options');
+        }
+    });
 }
 
 // Helper functions
@@ -541,15 +766,15 @@ function getMetricDescription(metric) {
 function getMetricThresholds(metric) {
     const thresholds = {
         vix: '• Warning: 20+\n• Danger: 30+\n• Panic: 40+',
-        spyRsi: '• Oversold: <30\n• Extreme: <20\n• Overbought: >70',
-        putCallRatio: '• Fear: >1.0\n• Panic: >1.5\n• Extreme: >2.0',
-        fearGreedIndex: '• Fear: <20\n• Extreme Fear: <10\n• Greed: >80',
-        mcclellanOscillator: '• Oversold: <-100\n• Capitulation: <-150',
-        cape: '• Overvalued: >25\n• Bubble: >35',
-        yieldSpread: '• Inversion: <0\n• Deep Inversion: <-0.5',
-        dollarIndex: '• Strong: >110\n• Weak: <95',
-        highLowIndex: '• Weakness: <-0.5\n• Capitulation: <-0.8',
-        creditSpreads: '• Stress: >200bp\n• Crisis: >300bp',
+        spyRsi: '• Oversold: &lt;30\n• Extreme: &lt;20\n• Overbought: &gt;70',
+        putCallRatio: '• Fear: &gt;1.0\n• Panic: &gt;1.5\n• Extreme: &gt;2.0',
+        fearGreedIndex: '• Fear: &lt;20\n• Extreme Fear: &lt;10\n• Greed: &gt;80',
+        mcclellanOscillator: '• Oversold: &lt;-100\n• Capitulation: &lt;-150',
+        cape: '• Overvalued: &gt;25\n• Bubble: &gt;35',
+        yieldSpread: '• Inversion: &lt;0\n• Deep Inversion: &lt;-0.5',
+        dollarIndex: '• Strong: &gt;110\n• Weak: &lt;95',
+        highLowIndex: '• Weakness: &lt;-0.5\n• Capitulation: &lt;-0.8',
+        creditSpreads: '• Stress: &gt;200bp\n• Crisis: &gt;300bp',
         nvdaPE: '• Decline: -50% from peak',
         semiETF: '• Correction: -20%\n• Opportunity: -40%'
     };
