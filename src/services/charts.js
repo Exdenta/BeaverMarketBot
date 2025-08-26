@@ -1,4 +1,4 @@
-import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
+import QuickChart from 'quickchart-js';
 import moment from 'moment';
 import { logger } from '../utils/logger.js';
 
@@ -6,23 +6,23 @@ export class ChartService {
     constructor() {
         this.width = 800;
         this.height = 600;
-        this.chartJSNodeCanvas = new ChartJSNodeCanvas({
-            width: this.width,
-            height: this.height,
-            backgroundColour: '#1a1a1a',
-            chartCallback: (ChartJS) => {
-                ChartJS.defaults.color = '#ffffff';
-                ChartJS.defaults.borderColor = '#404040';
-                ChartJS.defaults.backgroundColor = 'rgba(75, 192, 192, 0.2)';
-            }
-        });
     }
 
     async generateMetricChart(metricName, data, config = {}) {
         try {
+            const chart = new QuickChart();
+            chart.setWidth(this.width);
+            chart.setHeight(this.height);
+            chart.setBackgroundColor('#1a1a1a');
+            
             const chartConfig = this.getChartConfig(metricName, data, config);
-            const buffer = await this.chartJSNodeCanvas.renderToBuffer(chartConfig);
-            return buffer;
+            chart.setConfig(chartConfig);
+            
+            const url = chart.getUrl();
+            const response = await fetch(url);
+            const buffer = await response.arrayBuffer();
+            
+            return Buffer.from(buffer);
         } catch (error) {
             logger.error(`Error generating chart for ${metricName}:`, error);
             throw error;
@@ -76,23 +76,8 @@ export class ChartService {
                             }
                         }
                     },
-                    tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        titleColor: '#ffffff',
-                        bodyColor: '#ffffff',
-                        borderColor: metricConfig.borderColor,
-                        borderWidth: 1,
-                        callbacks: {
-                            title: function(context) {
-                                return moment(data[context[0].dataIndex].timestamp).format('MMMM DD, YYYY HH:mm');
-                            },
-                            label: function(context) {
-                                const value = context.parsed.y;
-                                const interpretation = metricConfig.getInterpretation ? 
-                                    metricConfig.getInterpretation(value) : '';
-                                return `${metricConfig.label}: ${value.toFixed(2)} ${interpretation}`;
-                            }
-                        }
+                    annotation: {
+                        annotations: this.getThresholdAnnotations(metricName, metricConfig)
                     }
                 },
                 scales: {
@@ -133,53 +118,42 @@ export class ChartService {
                             color: 'rgba(255, 255, 255, 0.1)'
                         }
                     }
-                },
-                interaction: {
-                    intersect: false,
-                    mode: 'index'
                 }
-            },
-            plugins: [{
-                id: 'thresholdLines',
-                beforeDraw: (chart) => {
-                    this.drawThresholdLines(chart, metricName, metricConfig);
-                }
-            }]
+            }
         };
     }
 
-    drawThresholdLines(chart, metricName, metricConfig) {
-        const { ctx, chartArea: { top, bottom, left, right }, scales: { y } } = chart;
+    getThresholdAnnotations(metricName, metricConfig) {
+        const annotations = [];
         
-        if (!metricConfig.thresholds) return;
-        
-        ctx.save();
-        
-        Object.entries(metricConfig.thresholds).forEach(([key, value]) => {
-            if (typeof value === 'number') {
-                const yPosition = y.getPixelForValue(value);
-                
-                if (yPosition >= top && yPosition <= bottom) {
-                    const color = this.getThresholdColor(key);
-                    const label = this.getThresholdLabel(key);
-                    
-                    ctx.strokeStyle = color;
-                    ctx.lineWidth = 2;
-                    ctx.setLineDash([5, 5]);
-                    
-                    ctx.beginPath();
-                    ctx.moveTo(left, yPosition);
-                    ctx.lineTo(right, yPosition);
-                    ctx.stroke();
-                    
-                    ctx.fillStyle = color;
-                    ctx.font = 'bold 12px Arial';
-                    ctx.fillText(label, right - 100, yPosition - 5);
+        if (metricConfig.thresholds) {
+            Object.entries(metricConfig.thresholds).forEach(([key, value]) => {
+                if (typeof value === 'number') {
+                    annotations.push({
+                        type: 'line',
+                        mode: 'horizontal',
+                        scaleID: 'y',
+                        value: value,
+                        borderColor: this.getThresholdColor(key),
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        label: {
+                            enabled: true,
+                            content: this.getThresholdLabel(key),
+                            position: 'end',
+                            backgroundColor: this.getThresholdColor(key),
+                            color: '#ffffff',
+                            font: {
+                                weight: 'bold',
+                                size: 12
+                            }
+                        }
+                    });
                 }
-            }
-        });
+            });
+        }
         
-        ctx.restore();
+        return annotations;
     }
 
     getThresholdColor(thresholdType) {
@@ -334,6 +308,11 @@ export class ChartService {
 
     async generateMultiMetricChart(metricsData, title = 'Market Overview') {
         try {
+            const chart = new QuickChart();
+            chart.setWidth(this.width);
+            chart.setHeight(this.height);
+            chart.setBackgroundColor('#1a1a1a');
+            
             const chartConfig = {
                 type: 'line',
                 data: {
@@ -427,8 +406,12 @@ export class ChartService {
                 }
             };
 
-            const buffer = await this.chartJSNodeCanvas.renderToBuffer(chartConfig);
-            return buffer;
+            chart.setConfig(chartConfig);
+            const url = chart.getUrl();
+            const response = await fetch(url);
+            const buffer = await response.arrayBuffer();
+            
+            return Buffer.from(buffer);
         } catch (error) {
             logger.error('Error generating multi-metric chart:', error);
             throw error;
@@ -437,6 +420,11 @@ export class ChartService {
 
     async generateAlertLevelChart(alertHistory) {
         try {
+            const chart = new QuickChart();
+            chart.setWidth(this.width);
+            chart.setHeight(this.height);
+            chart.setBackgroundColor('#1a1a1a');
+            
             const labels = alertHistory.map(item => moment(item.timestamp).format('MMM DD HH:mm'));
             const levels = alertHistory.map(item => this.alertLevelToNumber(item.level));
             const colors = alertHistory.map(item => this.getAlertLevelColor(item.level));
@@ -449,7 +437,7 @@ export class ChartService {
                         label: 'Alert Level',
                         data: levels,
                         borderColor: '#FF6B35',
-                        backgroundColor: levels.map((level, index) => colors[index]),
+                        backgroundColor: colors,
                         borderWidth: 3,
                         fill: true,
                         tension: 0.4,
@@ -506,8 +494,12 @@ export class ChartService {
                 }
             };
 
-            const buffer = await this.chartJSNodeCanvas.renderToBuffer(chartConfig);
-            return buffer;
+            chart.setConfig(chartConfig);
+            const url = chart.getUrl();
+            const response = await fetch(url);
+            const buffer = await response.arrayBuffer();
+            
+            return Buffer.from(buffer);
         } catch (error) {
             logger.error('Error generating alert level chart:', error);
             throw error;
@@ -546,11 +538,5 @@ export class ChartService {
         const end = moment(data[data.length - 1].timestamp);
         
         return `${start.format('MMM DD')} - ${end.format('MMM DD')}`;
-    }
-
-    async generateCorrelationHeatmap(correlationMatrix) {
-        // This would be implemented with a heatmap chart for metric correlations
-        // For now, returning a placeholder
-        return Buffer.from('Correlation heatmap placeholder');
     }
 }

@@ -1,11 +1,24 @@
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { logger } from '../utils/logger.js';
 
 export class AIAnalysisService {
     constructor() {
-        this.openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY
-        });
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (apiKey && !apiKey.startsWith('your_')) {
+            this.genAI = new GoogleGenerativeAI(apiKey);
+            this.model = this.genAI.getGenerativeModel({ 
+                model: "gemini-1.5-flash",
+                generationConfig: {
+                    temperature: 0.3,
+                    topK: 40,
+                    topP: 0.95,
+                    maxOutputTokens: 1024,
+                }
+            });
+        } else {
+            logger.warn('Gemini API key not configured, AI analysis will use fallback mode');
+            this.model = null;
+        }
         
         this.systemPrompt = `You are a professional market analyst specializing in crash detection and market timing. 
         You have access to 17 key market indicators and must provide actionable investment advice based on the complete framework.
@@ -64,19 +77,16 @@ export class AIAnalysisService {
 
     async analyzeMarketConditions(metrics) {
         try {
-            const analysisPrompt = this.buildAnalysisPrompt(metrics);
-            
-            const response = await this.openai.chat.completions.create({
-                model: "gpt-4-turbo-preview",
-                messages: [
-                    { role: "system", content: this.systemPrompt },
-                    { role: "user", content: analysisPrompt }
-                ],
-                temperature: 0.3,
-                max_tokens: 1000
-            });
+            if (!this.model) {
+                return this.generateFallbackAnalysis(metrics);
+            }
 
-            const analysis = response.choices[0].message.content;
+            const analysisPrompt = this.buildAnalysisPrompt(metrics);
+            const fullPrompt = `${this.systemPrompt}\n\n${analysisPrompt}`;
+            
+            const result = await this.model.generateContent(fullPrompt);
+            const response = await result.response;
+            const analysis = response.text();
             
             return {
                 summary: analysis,
@@ -351,6 +361,10 @@ Note: This is an automated analysis. AI-powered detailed analysis temporarily un
 
     async generateMetricInsight(metricName, historicalData) {
         try {
+            if (!this.model) {
+                return `Analysis for ${metricName} temporarily unavailable. Please check the charts and thresholds manually.`;
+            }
+
             const prompt = `Analyze this market metric and provide insight:
 
 Metric: ${metricName}
@@ -364,17 +378,9 @@ Provide a brief analysis focusing on:
 
 Keep response under 200 words and focus on practical implications.`;
 
-            const response = await this.openai.chat.completions.create({
-                model: "gpt-4-turbo-preview",
-                messages: [
-                    { role: "system", content: "You are a concise market analyst focused on crash detection." },
-                    { role: "user", content: prompt }
-                ],
-                temperature: 0.3,
-                max_tokens: 250
-            });
-
-            return response.choices[0].message.content;
+            const result = await this.model.generateContent(prompt);
+            const response = await result.response;
+            return response.text();
         } catch (error) {
             logger.error('Error generating metric insight:', error);
             return `Analysis for ${metricName} temporarily unavailable. Please check the charts and thresholds manually.`;
@@ -383,6 +389,10 @@ Keep response under 200 words and focus on practical implications.`;
 
     async generateCorrelationAnalysis(correlationData) {
         try {
+            if (!this.model) {
+                return "Correlation analysis temporarily unavailable.";
+            }
+
             const prompt = `Analyze these metric correlations and identify key relationships:
 
 ${JSON.stringify(correlationData, null, 2)}
@@ -395,17 +405,9 @@ Focus on:
 
 Provide practical guidance for using these correlations in crash detection.`;
 
-            const response = await this.openai.chat.completions.create({
-                model: "gpt-4-turbo-preview",
-                messages: [
-                    { role: "system", content: "You are an expert in financial correlation analysis and crash detection." },
-                    { role: "user", content: prompt }
-                ],
-                temperature: 0.3,
-                max_tokens: 400
-            });
-
-            return response.choices[0].message.content;
+            const result = await this.model.generateContent(prompt);
+            const response = await result.response;
+            return response.text();
         } catch (error) {
             logger.error('Error generating correlation analysis:', error);
             return "Correlation analysis temporarily unavailable.";
