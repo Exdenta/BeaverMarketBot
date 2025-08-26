@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  market-bot:
+    build: .
+    container_name: beware-market-bot
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./charts:/app/charts
+    networks:
+      - market-bot-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  # Optional: Add a monitoring service
+  watchtower:
+    image: containrrr/watchtower
+    container_name: market-bot-watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_POLL_INTERVAL=86400 # 24 hours
+    networks:
+      - market-bot-network
+
+networks:
+  market-bot-network:
+    driver: bridge
+
+volumes:
+  market_data:
+  market_logs:
+  market_charts:
