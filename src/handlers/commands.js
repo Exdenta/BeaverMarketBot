@@ -14,7 +14,7 @@ export function setupCommands(bot, services) {
             
             await dbService.saveUserSettings(userId, chatId);
             
-            const welcomeMessage = `🎯 <b>BeWare Market Bot</b> - Your Crash Detection Assistant
+            const welcomeMessage = `🦫 <b>Beaver Market Bot</b> - Your Crash Detection Assistant
 
 <b>🚀 FEATURES:</b>
 • Real-time monitoring of 17 key market indicators
@@ -212,7 +212,7 @@ ${analysis.summary}
 
     // Help command
     bot.command('help', async (ctx) => {
-        const helpMessage = `📚 <b>BeWare Market Bot - Help Guide</b>
+        const helpMessage = `📚 <b>Beaver Market Bot - Help Guide</b>
 
 <b>🎯 PURPOSE:</b>
 Monitor 17 key market indicators to detect crash opportunities and guide investment timing with €13,100 cash position.

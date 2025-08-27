@@ -1,4 +1,4 @@
-# BeWare Market Bot 🤖📊
+# Beaver Market Bot 🦫📊
 
 A comprehensive Telegram bot for market crash monitoring and analysis, tracking 17 key indicators to detect buying opportunities during market downturns.
 
@@ -77,8 +77,8 @@ This bot implements a complete market crash detection framework with:
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/yourusername/BeWareMarketBot.git
-cd BeWareMarketBot
+git clone https://github.com/yourusername/BeaverMarketBot.git
+cd BeaverMarketBot
 ```
 
 ### 2. Install Dependencies
@@ -376,4 +376,4 @@ For issues and questions:
 
 ---
 
-**Built for crash detection and market timing** 🎯📊🤖
+**Built for crash detection and market timing** 🦫📊🤖

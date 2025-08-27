@@ -296,7 +296,7 @@ Trend: ${calculateTrend(historicalData)}
         try {
             await ctx.answerCbQuery('🏠 Returning to main menu...');
             
-            const menuMessage = `🎯 <b>BeWare Market Bot</b> - Main Menu
+            const menuMessage = `🦫 <b>Beaver Market Bot</b> - Main Menu
 
 <b>Current Status:</b> Monitoring 17 market indicators
 <b>Alert Level:</b> 🟢 GREEN (updated every 30 minutes)

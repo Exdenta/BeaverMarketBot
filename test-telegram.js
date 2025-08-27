@@ -28,7 +28,7 @@ async function testTelegram() {
         
         console.log('📤 Sending test message to chat ID:', chatId);
         await bot.telegram.sendMessage(chatId, 
-            '✅ Test successful!\n\nYour BeWare Market Bot is configured correctly.\n\nChat ID: ' + chatId
+            '✅ Test successful!\n\n🦫 Your Beaver Market Bot is configured correctly.\n\nChat ID: ' + chatId
         );
         
         console.log('✅ Message sent successfully!');

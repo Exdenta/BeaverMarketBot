@@ -557,4 +557,51 @@ ${alert.emoji} <b>${alert.message}</b>
             this.alertHistory.delete(oldestKey);
         }
     }
+
+    async generateWeeklyAlert() {
+        const { MarketDataService } = await import('./marketData.js');
+        const { AIAnalysisService } = await import('./aiAnalysis.js');
+        
+        const marketDataService = new MarketDataService();
+        const aiAnalysisService = new AIAnalysisService();
+        
+        try {
+            const metrics = await marketDataService.getAllMetrics();
+            const summary = await marketDataService.generateMarketSummary();
+            const analysis = await aiAnalysisService.analyzeMarketConditions(metrics);
+            
+            const timestamp = new Date().toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+            
+            let message = `🦫 <b>WEEKLY BEAVER MARKET REPORT</b> 🦫\n\n`;
+            message += `📅 <b>${timestamp}</b>\n\n`;
+            message += `${summary}\n\n`;
+            message += `<b>🤖 AI WEEKLY ANALYSIS:</b>\n${analysis}\n\n`;
+            message += `💰 <b>Cash Position:</b> €13,100 ready for deployment\n`;
+            message += `⚠️ <b>Remember:</b> Only deploy cash during RED/BLACK alerts\n\n`;
+            message += `<i>Next weekly update: Monday ${new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()}</i>`;
+            
+            return message;
+        } catch (error) {
+            logger.error('Error generating weekly alert:', error);
+            
+            const timestamp = new Date().toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+            
+            return `🦫 <b>WEEKLY BEAVER MARKET REPORT</b> 🦫\n\n` +
+                   `📅 <b>${timestamp}</b>\n\n` +
+                   `🟢 <b>Current Status:</b> GREEN - Normal market conditions\n` +
+                   `💰 <b>Cash Position:</b> €13,100 ready for deployment\n` +
+                   `📊 <b>Action:</b> Monitor for crash signals\n\n` +
+                   `<i>⚠️ Technical issue generating detailed analysis. Monitoring continues...</i>`;
+        }
+    }
 }

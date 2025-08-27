@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# BeWare Market Bot Setup Script
-echo "🤖 BeWare Market Bot Setup Starting..."
+# Beaver Market Bot Setup Script
+echo "🦫 Beaver Market Bot Setup Starting..."
 
 # Check if Node.js is installed
 if ! command -v node &> /dev/null; then
@@ -51,9 +51,9 @@ chmod 755 data logs charts
 create_systemd_service() {
     echo "🔧 Creating systemd service file..."
     
-    cat > /tmp/beware-market-bot.service << EOF
+    cat > /tmp/beaver-market-bot.service << EOF
 [Unit]
-Description=BeWare Market Bot
+Description=Beaver Market Bot
 After=network.target
 
 [Service]
@@ -69,10 +69,10 @@ Environment=NODE_ENV=production
 WantedBy=multi-user.target
 EOF
 
-    echo "📝 Service file created at /tmp/beware-market-bot.service"
-    echo "   To install: sudo cp /tmp/beware-market-bot.service /etc/systemd/system/"
-    echo "   Then run: sudo systemctl enable beware-market-bot.service"
-    echo "   Start with: sudo systemctl start beware-market-bot.service"
+    echo "📝 Service file created at /tmp/beaver-market-bot.service"
+    echo "   To install: sudo cp /tmp/beaver-market-bot.service /etc/systemd/system/"
+    echo "   Then run: sudo systemctl enable beaver-market-bot.service"
+    echo "   Start with: sudo systemctl start beaver-market-bot.service"
 }
 
 # Ask if user wants to create systemd service
@@ -135,4 +135,4 @@ echo "4. Or use Docker:"
 echo "   docker-compose up -d"
 echo ""
 echo "📚 See README.md for detailed instructions"
-echo "🤖 Happy crash monitoring!"
+echo "🦫 Happy crash monitoring with Beaver Market Bot!"

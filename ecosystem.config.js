@@ -1,6 +1,6 @@
 module.exports = {
   apps: [{
-    name: 'beware-market-bot',
+    name: 'beaver-market-bot',
     script: 'src/index.js',
     instances: 1,
     autorestart: true,
