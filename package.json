@@ -1,7 +1,7 @@
 {
-  "name": "beware-market-bot",
+  "name": "beaver-market-bot",
   "version": "1.0.0",
-  "description": "Telegram bot for market crash monitoring and analysis",
+  "description": "Beaver Market Bot - Telegram bot for market crash monitoring and analysis",
   "main": "src/index.js",
   "type": "module",
   "scripts": {

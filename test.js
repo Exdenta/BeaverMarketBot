@@ -4,7 +4,7 @@ import { logger } from './src/utils/logger.js';
 dotenv.config();
 
 async function testSetup() {
-    console.log('🧪 Testing BeWare Market Bot Setup...\n');
+    console.log('🧪 Testing Beaver Market Bot Setup...\n');
     
     // Test 1: Check environment variables
     console.log('✅ Test 1: Environment Variables');

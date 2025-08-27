@@ -3,7 +3,7 @@ version: '3.8'
 services:
   market-bot:
     build: .
-    container_name: beware-market-bot
+    container_name: beaver-market-bot
     restart: unless-stopped
     environment:
       - NODE_ENV=production
@@ -25,7 +25,7 @@ services:
   # Optional: Add a monitoring service
   watchtower:
     image: containrrr/watchtower
-    container_name: market-bot-watchtower
+    container_name: beaver-bot-watchtower
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

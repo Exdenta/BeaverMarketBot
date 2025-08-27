@@ -80,6 +80,16 @@ class MarketBot {
                 logger.error('Error sending market close summary:', error);
             }
         });
+
+        // Weekly Monday alert - runs every Monday at 9:00 AM
+        cron.schedule('0 9 * * 1', async () => {
+            try {
+                logger.info('Running weekly Monday alert...');
+                await this.sendWeeklyAlert();
+            } catch (error) {
+                logger.error('Error sending weekly Monday alert:', error);
+            }
+        });
     }
 
     async performMarketCheck() {
@@ -103,6 +113,21 @@ class MarketBot {
             });
         } catch (error) {
             logger.error(`Error sending ${type} summary:`, error);
+        }
+    }
+
+    async sendWeeklyAlert() {
+        const chatId = process.env.TELEGRAM_CHAT_ID;
+        if (!chatId) return;
+
+        try {
+            const weeklyAlert = await this.alertService.generateWeeklyAlert();
+            await this.bot.telegram.sendMessage(chatId, weeklyAlert, {
+                parse_mode: 'HTML',
+                disable_web_page_preview: true
+            });
+        } catch (error) {
+            logger.error('Error sending weekly alert:', error);
         }
     }
 
